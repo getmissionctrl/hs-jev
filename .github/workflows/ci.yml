@@ -7,29 +7,19 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
-    name: build
+  build-test:
+    name: build & test
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
       - uses: ./.github/actions/setup
+      # Build once — this compiles the library and both test suites and absorbs
+      # the nix store realization + all build output.
       - name: Build
         run: nix develop .#dev --command cabal build all
-
-  test:
-    name: test
-    needs: build
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@v5
-      - uses: ./.github/actions/setup
-      # Compile first — this step absorbs the nix store realization and the
-      # build output, so the run step below shows only test results.
-      - name: Build tests
-        run: nix develop .#dev --command cabal build all
-      # Runs both suites. The opt-in `live` suite self-skips when
-      # TYPESAFE_API_KEY is unset, so CI needs no secret.
+      # Reuses the artifacts from the Build step, so this shows only test
+      # results. The opt-in `live` suite self-skips when TYPESAFE_API_KEY is
+      # unset, so CI needs no secret.
       - name: Run tests
         run: nix develop .#dev --command cabal test --test-show-details=direct
