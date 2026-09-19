@@ -76,6 +76,23 @@ set -a && . ./.env && set +a
 nix develop .#dev --command cabal test live         # skips cleanly if the key is unset
 ```
 
+## Examples
+
+`hs-jev-examples` recreates three examples from the TypeSafe docs, each issuing a
+live `callJev` (so it needs `TYPESAFE_API_KEY`):
+
+```bash
+set -a && . ./.env && set +a
+nix develop .#dev --command cabal run hs-jev-examples -- --list
+nix develop .#dev --command cabal run hs-jev-examples -- support-triage
+```
+
+| example | primitives | what it shows |
+|---|---|---|
+| `support-triage` | Noul + Choice + Score | route a support ticket in one batched call (quickstart) |
+| `spam-check` | six Nouls | speculative fan-out + three-band `band` verdict |
+| `resume-screen` | four Scores | role-weighted `compositeScore` |
+
 ## Layout
 
 | module | responsibility |
