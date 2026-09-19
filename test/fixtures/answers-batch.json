@@ -1,0 +1,3 @@
+{ "q0": { "type": "choice", "choice": "billing",
+          "probabilities": { "billing": 0.9, "returns": 0.1 }, "confidence": 0.8 },
+  "q1": { "type": "noul", "noul": 0.7 } }
