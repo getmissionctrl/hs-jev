@@ -25,7 +25,11 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: ./.github/actions/setup
+      # Compile first — this step absorbs the nix store realization and the
+      # build output, so the run step below shows only test results.
+      - name: Build tests
+        run: nix develop .#dev --command cabal build all
       # Runs both suites. The opt-in `live` suite self-skips when
       # TYPESAFE_API_KEY is unset, so CI needs no secret.
-      - name: Tests
+      - name: Run tests
         run: nix develop .#dev --command cabal test --test-show-details=direct
