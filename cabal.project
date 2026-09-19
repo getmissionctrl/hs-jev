@@ -1,0 +1,5 @@
+packages: .
+
+-- Include test suites in the build plan for a fresh `cabal test` in the Nix
+-- dev shell (no Hackage index).
+tests: True
