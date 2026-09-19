@@ -45,7 +45,8 @@ test-suite spec
   hs-source-dirs:   test
   main-is:          Spec.hs
   default-language: Haskell2010
-  other-modules:    Jev.TypesSpec
+  other-modules:    TestUtil
+                    Jev.TypesSpec
                     Jev.AskSpec
                     Jev.ClientSpec
                     Jev.PatternsSpec

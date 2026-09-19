@@ -1,0 +1,3 @@
+{ "type": "choice", "choice": "billing",
+  "probabilities": { "returns": 0.02, "billing": 0.9, "shipping": 0.08 },
+  "confidence": 0.82 }
