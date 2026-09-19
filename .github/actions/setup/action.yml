@@ -1,0 +1,17 @@
+name: Setup
+description: Install Nix and restore the cabal build cache (shared by all jobs).
+
+runs:
+  using: composite
+  steps:
+    - name: Install Nix
+      uses: DeterminateSystems/nix-installer-action@main
+
+    # dist-newstyle references the pinned (flake.lock) GHC + deps store paths,
+    # identical across jobs, so the build job's output is reusable by test.
+    # Keyed on the toolchain + all sources.
+    - name: Cache build
+      uses: actions/cache@v6
+      with:
+        path: dist-newstyle
+        key: dist-${{ runner.os }}-${{ hashFiles('flake.lock', 'flake.nix', '**/*.cabal', 'cabal.project', 'src/**/*.hs', 'test/**/*.hs') }}
