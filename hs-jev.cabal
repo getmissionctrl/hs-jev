@@ -30,12 +30,10 @@ library
                   , bytestring
                   , text
                   , containers
-                  , unordered-containers
                   , http-client
                   , http-client-tls
                   , http-types
                   , free
-                  , mtl
                   , transformers
                   , retry
 

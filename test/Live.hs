@@ -28,10 +28,10 @@ runLive = do
                 , ("shipping", descPlain "Delivery status, delays, lost packages") ]
       ask = (,) <$> teamQ <*> askNoul (plain "Should this be escalated to a human agent?")
 
-  ((ca, escalate), usage) <- orDie "live call failed" =<< callJev client st ask
+  ((ca, escalate), usg) <- orDie "live call failed" =<< callJev client st ask
   putStrLn ("chosen team : " <> show ca.choice <> "  (confidence " <> show ca.confidence <> ")")
   putStrLn ("escalate?   : " <> show escalate)
-  putStrLn ("usage       : " <> show usage)
+  putStrLn ("usage       : " <> show usg)
 
   -- §5.2 independence spot-check: the same question asked alone must agree.
   (caAlone, _) <- orDie "live solo call failed" =<< callJev client st teamQ

@@ -51,32 +51,32 @@ spec = describe "Jev.Ask" $ do
     let mkAsk extra = (\c _ -> c)
                         <$> askChoice (plain "team?") [("billing", descNone), ("returns", descNone)]
                         <*> extra
-        answers = KM.fromList
+        ans = KM.fromList
           [ ("q0", Object (KM.fromList [ ("type", "choice"), ("choice", "billing")
               , ("probabilities", Object (KM.fromList [("billing", Number 1.0)]))
               , ("confidence", Number 1.0) ]))
           , ("q1", Object (KM.fromList [("type","noul"), ("noul", Number 0.5)])) ]
-        r1 = decodeAnswers (mkAsk (askNoul (plain "x"))) answers
-        r2 = decodeAnswers (mkAsk (askNoul (plain "y"))) answers
+        r1 = decodeAnswers (mkAsk (askNoul (plain "x"))) ans
+        r2 = decodeAnswers (mkAsk (askNoul (plain "y"))) ans
     expectRight r1 $ \c1 -> expectRight r2 $ \c2 -> c1.choice `shouldBe` c2.choice
 
   it "enum roundtrip: dist keys are enum members and chosen parses back" $ do
     let ask = askChoiceEnum (plain "team?") (const descNone) :: Ask (ChoiceResult Team)
-        answers = KM.fromList
+        ans = KM.fromList
           [ ("q0", Object (KM.fromList [ ("type","choice"), ("choice","Billing")
               , ("probabilities", Object (KM.fromList [("Billing", Number 0.7), ("Returns", Number 0.3)]))
               , ("confidence", Number 0.6) ])) ]
-    expectRight (decodeAnswers ask answers) $ \cr -> do
+    expectRight (decodeAnswers ask ans) $ \cr -> do
       cr.chosen `shouldBe` Billing
       Map.keys cr.dist `shouldMatchList` [Billing, Returns]
 
   it "enum decode fails on an unknown option key" $ do
     let ask = askChoiceEnum (plain "team?") (const descNone) :: Ask (ChoiceResult Team)
-        answers = KM.fromList
+        ans = KM.fromList
           [ ("q0", Object (KM.fromList [ ("type","choice"), ("choice","Nope")
               , ("probabilities", Object (KM.fromList [("Nope", Number 1.0)]))
               , ("confidence", Number 1.0) ])) ]
-    decodeAnswers ask answers `shouldSatisfy` isLeft
+    decodeAnswers ask ans `shouldSatisfy` isLeft
 
   it "prop: encode key count equals question count (fan-out is <*>)" $
     property $ \(NonNegative a) (NonNegative b) ->

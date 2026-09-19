@@ -9,7 +9,9 @@ import Control.Exception (try)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Retry (RetryStatus(..), limitRetries, exponentialBackoff, retrying)
 import Data.Aeson (Value, encode, object, (.=), eitherDecode)
+import Data.Maybe (fromMaybe)
 import Data.Text (Text)
+import GHC.Clock (getMonotonicTimeNSec)
 import System.Environment (lookupEnv)
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.Text as T
@@ -74,19 +76,22 @@ callJev (Client mgr cfg) st ask = liftIO $ do
   onEvent cfg (Requested (KM.size qs) (fromIntegral (BL.length (encode st))))
   let policy = exponentialBackoff (baseDelayMs (retryPolicy cfg) * 1000)
                <> limitRetries (maxRetries (retryPolicy cfg))
+  t0 <- getMonotonicTimeNSec
   final <- retrying policy (\rs r -> onRetry rs r >> pure (retryable r)) (\_ -> attemptOnce body)
-  let result = do resp <- final
+  t1 <- getMonotonicTimeNSec
+  let elapsedMs = fromIntegral ((t1 - t0) `div` 1000000)
+      result = do resp <- final
                   a    <- decodeAnswers ask resp.answers
                   pure (a, resp.usage)
   case result of
-    Left err     -> onEvent cfg (Failed err)    >> pure (Left err)
-    Right (a, u) -> onEvent cfg (Responded u 0) >> pure (Right (a, u))
+    Left err     -> onEvent cfg (Failed err)            >> pure (Left err)
+    Right (a, u) -> onEvent cfg (Responded u elapsedMs) >> pure (Right (a, u))
   where
     retryable (Left (ApiError s _))     = shouldRetry s
     retryable (Left (TransportError _)) = True
     retryable _                         = False
 
-    onRetry (RetryStatus n _ _) (Left (ApiError s _)) = onEvent cfg (Retried n s)
+    onRetry (RetryStatus n _ _) (Left (ApiError s _)) = onEvent cfg (Retried (n + 1) s)
     onRetry _ _                                       = pure ()
 
     attemptOnce :: Value -> IO (Either JevError Jev.Types.Response)
@@ -110,7 +115,7 @@ callJev (Client mgr cfg) st ask = liftIO $ do
                then case eitherDecode bs of
                       Left de   -> Left (DecodeError de (jsonOrNull bs))
                       Right rsp -> Right rsp
-               else Left (ApiError code (TE.decodeUtf8 (BL.toStrict bs)))
+               else Left (ApiError code (TE.decodeUtf8Lenient (BL.toStrict bs)))
 
-    jsonOrNull bs = maybe (object []) id (eitherToMaybe (eitherDecode bs))
+    jsonOrNull bs = fromMaybe (object []) (eitherToMaybe (eitherDecode bs))
     eitherToMaybe = either (const Nothing) Just

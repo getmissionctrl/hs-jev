@@ -10,6 +10,7 @@ import Control.Monad.Trans.Class (lift)
 import Control.Monad.Trans.State.Strict (StateT, evalStateT, get, put)
 import Data.Aeson
 import Data.Map.Strict (Map)
+import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import qualified Data.Aeson.Key as Key
 import qualified Data.Aeson.KeyMap as KM
@@ -51,7 +52,7 @@ scoreJson instr lvls =
 
 criteriaJson :: Criteria -> Value
 criteriaJson crit =
-  object [ Key.fromText k .= maybe Null id md | (k, Description md) <- crit ]
+  object [ Key.fromText k .= fromMaybe Null md | (k, Description md) <- crit ]
 
 -- Interpreter 1: what we send ------------------------------------------------
 
@@ -67,14 +68,14 @@ encodeQuestions =
 -- | Decode the @answers@ map back into the typed result. Positional keys match
 -- 'encodeQuestions' because both traverse the 'Ap' spine left-to-right.
 decodeAnswers :: Ask a -> KM.KeyMap Value -> Either JevError a
-decodeAnswers ask answers = evalStateT (runAp step ask) 0
+decodeAnswers ask ans = evalStateT (runAp step ask) 0
   where
     step :: QF x -> StateT Int (Either JevError) x
     step q = do
       i <- get
       put (i + 1)
       let k = Key.fromString ('q' : show i)
-      case KM.lookup k answers of
+      case KM.lookup k ans of
         Nothing -> lift (Left (MissingAnswer (T.pack ('q' : show i))))
         Just v  -> lift (qParse q v)
 
