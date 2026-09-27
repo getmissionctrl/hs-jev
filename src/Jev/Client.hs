@@ -36,6 +36,7 @@ shouldRetry s = s == 429 || (s >= 500 && s < 600)
 data Config = Config
   { apiKey        :: Text
   , baseUrl       :: Text
+  , endpoint      :: Text   -- ^ request path appended to 'baseUrl' (e.g. @\/v1\/systemone@).
   , model         :: Text
   , timeoutMicros :: Int
   , retryPolicy   :: RetryPolicy
@@ -46,6 +47,7 @@ defaultConfig :: Text -> Config
 defaultConfig k = Config
   { apiKey = k
   , baseUrl = "https://api.typesafe.ai"
+  , endpoint = "/v1/systemone"
   , model = "jev-latest"
   , timeoutMicros = 60 * 1000000
   , retryPolicy = defaultRetry
@@ -62,10 +64,17 @@ newClient = liftIO $ do
     Nothing -> ioError (userError "TYPESAFE_API_KEY not set")
     Just k  -> newClientWith (defaultConfig (T.pack k))
 
+-- | Build a client. The request path defaults to the config's 'endpoint'
+-- (@\/v1\/systemone@ for TypeSafe/laya) but is overridden by the @JEV_ENDPOINT@
+-- environment variable when set — this lets a deployment retarget a
+-- Jev-wire-compatible server that serves a different path (e.g. Intern-Decision's
+-- @\/v1\/jev@) without a code change.
 newClientWith :: MonadIO m => Config -> m Client
 newClientWith cfg = liftIO $ do
   mgr <- newTlsManager
-  pure (Client mgr cfg)
+  mEp <- lookupEnv "JEV_ENDPOINT"
+  let cfg' = maybe cfg (\ep -> cfg { endpoint = T.pack ep }) mEp
+  pure (Client mgr cfg')
 
 -- | Send one batch of questions over the shared state; return the typed result
 -- and the reported token usage, or a 'JevError'.
@@ -96,7 +105,7 @@ callJev (Client mgr cfg) st ask = liftIO $ do
 
     attemptOnce :: Value -> IO (Either JevError Jev.Types.Response)
     attemptOnce body = do
-      req0 <- parseRequest (T.unpack (baseUrl cfg) <> "/v1/systemone")
+      req0 <- parseRequest (T.unpack (baseUrl cfg) <> T.unpack (endpoint cfg))
       let req = req0
             { method = "POST"
             , requestHeaders =

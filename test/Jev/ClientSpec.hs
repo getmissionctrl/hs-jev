@@ -13,3 +13,6 @@ spec = describe "Jev.Client" $ do
     let c = defaultConfig "k"
     baseUrl c `shouldBe` "https://api.typesafe.ai"
     model c   `shouldBe` "jev-latest"
+
+  it "defaultConfig requests the systemone endpoint by default" $
+    endpoint (defaultConfig "k") `shouldBe` "/v1/systemone"
